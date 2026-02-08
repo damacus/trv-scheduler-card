@@ -1,0 +1,38 @@
+{
+  "name": "trv-heating-scheduler-card",
+  "version": "1.0.0",
+  "description": "A beautiful Tado-inspired heating scheduler for Home Assistant TRV control",
+  "main": "trv-heating-scheduler-card.js",
+  "scripts": {
+    "build": "echo 'No build step required - pure JavaScript'",
+    "lint": "eslint trv-heating-scheduler-card.js",
+    "format": "prettier --write '*.js'"
+  },
+  "keywords": [
+    "home-assistant",
+    "lovelace",
+    "custom-card",
+    "heating",
+    "thermostat",
+    "trv",
+    "scheduler",
+    "climate",
+    "smart-home",
+    "matter",
+    "zigbee"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/trv-heating-scheduler-card.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/trv-heating-scheduler-card/issues"
+  },
+  "homepage": "https://github.com/yourusername/trv-heating-scheduler-card#readme",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  }
+}

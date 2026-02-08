@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRV Heating Scheduler - Getting Started</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.95;
+        }
+        
+        .hero {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+        }
+        
+        .steps {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .steps h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2rem;
+            text-align: center;
+        }
+        
+        .step {
+            display: flex;
+            align-items: start;
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .step:last-child {
+            border-bottom: none;
+        }
+        
+        .step-number {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 25px;
+            flex-shrink: 0;
+        }
+        
+        .step-content h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .step-content code {
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .cta {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        
+        .cta h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 35px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255,255,255,0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .btn-secondary:hover {
+            background: white;
+            color: #667eea;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .hero, .steps, .cta {
+                padding: 25px;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .step {
+                flex-direction: column;
+            }
+            
+            .step-number {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏠 TRV Heating Scheduler</h1>
+            <p class="subtitle">Beautiful, Tado-inspired heating control for Home Assistant</p>
+        </header>
+        
+        <div class="hero">
+            <h2 style="color: #667eea; margin-bottom: 20px;">What is this?</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 15px;">
+                A custom Home Assistant card that gives you elegant, visual control over your smart radiator thermostats (TRVs). 
+                Create weekly heating schedules with different temperatures for different times of day, across multiple zones in your home.
+            </p>
+            <p style="font-size: 1.1rem; color: #666;">
+                Inspired by Tado's interface, designed for efficiency, built for the Home Assistant community.
+            </p>
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3>7-Day Scheduling</h3>
+                <p>Different schedules for each day of the week. Perfect for varying routines between weekdays and weekends.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Visual Timeline</h3>
+                <p>See your entire day's heating schedule at a glance with color-coded temperature blocks.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🏡</div>
+                <h3>Multi-Zone Support</h3>
+                <p>Control multiple rooms independently. Each zone gets its own schedule and settings.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Copy & Paste</h3>
+                <p>Quickly duplicate schedules across days. Set up Monday, then copy to the rest of the week.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🌡️</div>
+                <h3>Temperature Control</h3>
+                <p>Visual sliders make it easy to set exact temperatures for each time block.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Mobile Optimized</h3>
+                <p>Works perfectly on phones, tablets, and wall-mounted displays.</p>
+            </div>
+        </div>
+        
+        <div class="steps">
+            <h2>Quick Installation Guide</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Download the Files</h3>
+                    <p>You'll need two JavaScript files:</p>
+                    <ul style="margin: 10px 0 10px 20px;">
+                        <li><code>trv-heating-scheduler-card.js</code></li>
+                        <li><code>trv-heating-scheduler-card-editor.js</code></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Upload to Home Assistant</h3>
+                    <p>Copy both files to your Home Assistant:</p>
+                    <div class="code-block">
+/config/www/trv-scheduler/
+├── trv-heating-scheduler-card.js
+└── trv-heating-scheduler-card-editor.js
+                    </div>
+                    <p style="margin-top: 10px;">Create the <code>www/trv-scheduler/</code> directory if it doesn't exist.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Register the Resource</h3>
+                    <p>In Home Assistant:</p>
+                    <ol style="margin: 10px 0 10px 20px;">
+                        <li>Go to <strong>Settings → Dashboards</strong></li>
+                        <li>Click the <strong>⋮</strong> menu (top right)</li>
+                        <li>Select <strong>Resources</strong></li>
+                        <li>Click <strong>+ ADD RESOURCE</strong></li>
+                        <li>URL: <code>/local/trv-scheduler/trv-heating-scheduler-card.js</code></li>
+                        <li>Type: <strong>JavaScript Module</strong></li>
+                    </ol>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Restart Home Assistant</h3>
+                    <p>Go to <strong>Settings → System → Restart</strong> and restart Home Assistant.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h3>Add the Card</h3>
+                    <p>On any dashboard:</p>
+                    <ol style="margin: 10px 0 10px 20px;">
+                        <li>Click <strong>Edit Dashboard</strong></li>
+                        <li>Click <strong>+ ADD CARD</strong></li>
+                        <li>Search for "TRV Heating Scheduler"</li>
+                        <li>Configure your zones and temperatures</li>
+                        <li>Save!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="steps">
+            <h2>Example Configuration</h2>
+            <p style="margin-bottom: 20px;">Here's a basic setup for a two-room home:</p>
+            <div class="code-block">
+type: custom:trv-heating-scheduler-card
+title: Heating Schedule
+zones:
+  - id: living_room
+    name: Living Room
+    entities:
+      - climate.living_room_trv
+  - id: bedroom
+    name: Bedroom
+    entities:
+      - climate.bedroom_trv
+default_temperature: 16
+comfort_temperature: 19
+            </div>
+        </div>
+        
+        <div class="cta">
+            <h2>Ready to Get Started?</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                Take control of your home heating with beautiful, efficient scheduling.
+            </p>
+            <div class="cta-buttons">
+                <a href="#" class="btn btn-primary" onclick="alert('Check the QUICKSTART.md file for detailed instructions!'); return false;">
+                    Quick Start Guide
+                </a>
+                <a href="#" class="btn btn-secondary" onclick="alert('Check the README.md file for complete documentation!'); return false;">
+                    Full Documentation
+                </a>
+            </div>
+            <p style="margin-top: 30px; opacity: 0.9;">
+                ✨ Free & Open Source • 🏠 Built for Home Assistant • ❤️ Community Driven
+            </p>
+        </div>
+    </div>
+</body>
+</html>

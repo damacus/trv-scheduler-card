@@ -1,0 +1,58 @@
+graph TB
+    subgraph "User Interface"
+        A[TRV Scheduler Card<br/>Lovelace Dashboard]
+        B[Visual Timeline]
+        C[Zone Tabs]
+        D[Day Selector]
+        E[Time Block Editor]
+    end
+    
+    subgraph "Data Storage"
+        F[localStorage<br/>Browser Storage]
+        G[Input Text Helpers<br/>Optional]
+    end
+    
+    subgraph "Automation Layer"
+        H[AppDaemon App<br/>trv_scheduler.py]
+        I[HA Automations<br/>Optional]
+    end
+    
+    subgraph "Home Assistant Core"
+        J[Climate Services]
+        K[Entity States]
+    end
+    
+    subgraph "Physical Devices"
+        L[Living Room TRV]
+        M[Bedroom TRV]
+        N[Kitchen TRV]
+        O[Other TRVs...]
+    end
+    
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    
+    E --> F
+    E -.-> G
+    
+    F --> H
+    G -.-> I
+    
+    H --> J
+    I -.-> J
+    
+    J --> K
+    K --> L
+    K --> M
+    K --> N
+    K --> O
+    
+    style A fill:#ff6b35,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#4CAF50,stroke:#333,stroke-width:2px,color:#fff
+    style J fill:#2196F3,stroke:#333,stroke-width:2px,color:#fff
+    style L fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
+    style M fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
+    style N fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff
+    style O fill:#9C27B0,stroke:#333,stroke-width:2px,color:#fff

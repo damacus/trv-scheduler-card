@@ -1,0 +1,10 @@
+{
+  "name": "TRV Heating Scheduler Card",
+  "hacs": "1.6.0",
+  "render_readme": true,
+  "country": ["GB", "DE", "FR", "NL", "BE", "US", "CA"],
+  "homeassistant": "2024.1.0",
+  "persistent_directory": false,
+  "filename": "trv-heating-scheduler-card.js",
+  "content_in_root": false
+}
