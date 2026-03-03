@@ -34,41 +34,34 @@ A beautiful, Tado-inspired heating scheduler for controlling smart TRVs (Thermos
 
 ## Installation
 
-### Method 1: Manual Installation
+### 1. Frontend Card (via HACS)
+1. Open HACS in Home Assistant.
+2. Click on **Frontend**.
+3. Click the three dots in the top right and select **Custom repositories**.
+4. Add this repository URL and select **Lovelace** as the category.
+5. Search for "TRV Heating Scheduler Card" and install it.
 
-1. **Download the files:**
-   - `trv-heating-scheduler-card.js`
-   - `trv-heating-scheduler-card-editor.js`
+### 2. Backend Logic (AppDaemon)
+**IMPORTANT:** The HACS installation only handles the frontend UI. To actually enforce the schedules, you must manually install the AppDaemon script:
 
-2. **Copy to Home Assistant:**
-   ```bash
-   # Create the www directory if it doesn't exist
-   mkdir -p /config/www/community/trv-heating-scheduler/
-   
-   # Copy the files
-   cp trv-heating-scheduler-card.js /config/www/community/trv-heating-scheduler/
-   cp trv-heating-scheduler-card-editor.js /config/www/community/trv-heating-scheduler/
-   ```
+1. Ensure you have the **AppDaemon** add-on installed and running in Home Assistant.
+2. Copy `trv_scheduler.py` from this repository into your Home Assistant `/config/appdaemon/apps/` directory.
+3. Add the following to your `apps.yaml` configuration:
 
-3. **Add to Lovelace resources:**
-   
-   Go to **Settings** → **Dashboards** → **Resources** (top right menu) → **Add Resource**
-   
-   ```yaml
-   url: /local/community/trv-heating-scheduler/trv-heating-scheduler-card.js
-   type: JavaScript module
-   ```
+```yaml
+trv_scheduler:
+  module: trv_scheduler
+  class: TRVHeatingScheduler
+  zones:
+    - name: "Living Room"
+      id: "living_room"
+      entities:
+        - climate.living_room_trv
+  default_temperature: 16
+  comfort_temperature: 19
+```
 
-4. **Restart Home Assistant**
-
-### Method 2: HACS Installation (Future)
-
-*This card will be submitted to HACS soon*
-
-1. Open HACS
-2. Go to "Frontend"
-3. Search for "TRV Heating Scheduler"
-4. Click Install
+4. Restart AppDaemon to apply the changes.
 
 ## Configuration
 
@@ -130,6 +123,7 @@ time_step: 30              # Time picker step in minutes
 | `min_temperature` | number | `5` | Minimum temperature (°C) |
 | `max_temperature` | number | `30` | Maximum temperature (°C) |
 | `time_step` | number | `30` | Time picker increment (minutes) |
+| `use_input_helpers` | boolean | `false` | Sync schedules to `input_text` helpers (for AppDaemon/multi-device persistence) |
 
 ### Zone Configuration
 
@@ -197,7 +191,24 @@ trv_scheduler:
   check_interval: 60  # Check every 60 seconds
 ```
 
-4. **Restart AppDaemon**
+4. **Enable helper sync in card config** and create helpers:
+
+```yaml
+type: custom:trv-heating-scheduler-card
+use_input_helpers: true
+```
+
+```yaml
+input_text:
+  living_room_schedule_monday:
+    name: "Living Room Schedule - Monday"
+    initial: '[]'
+    max: 1024
+```
+
+Create one helper per zone/day: `input_text.<zone_id>_schedule_<day>`.
+
+5. **Restart AppDaemon**
 
 The app will automatically:
 - Apply schedules based on current time
@@ -224,16 +235,13 @@ Use built-in automations (simpler but less flexible).
 
 ### Option 3: Node-RED
 
-If you use Node-RED, you can create a flow that:
-1. Reads schedule data from localStorage via browser
-2. Applies schedules based on time
-3. Provides visual flow debugging
+If you use Node-RED, create a flow that reads `input_text.<zone_id>_schedule_<day>` and applies temperatures based on current time.
 
 ## Troubleshooting
 
 ### Card doesn't appear
 
-- Check that the JavaScript file is loaded in Resources
+- Check that both JavaScript files are loaded in Resources (`...card.js` and `...card-editor.js`)
 - Check browser console for errors (F12)
 - Verify the file path is correct
 - Clear browser cache (Ctrl+Shift+R)
@@ -321,7 +329,10 @@ Contributions are welcome! Please:
 
 ## Data Storage
 
-The card stores schedules in browser **localStorage** by default. This means:
+The card stores schedules in browser **localStorage** by default.
+When `use_input_helpers: true` is enabled, it also syncs schedules to Home Assistant `input_text` helpers.
+
+Default localStorage mode:
 
 ✅ **Pros:**
 - Instant updates
@@ -333,12 +344,19 @@ The card stores schedules in browser **localStorage** by default. This means:
 - Lost if browser data is cleared
 - Not accessible to automations
 
-**Future feature:** Option to store in Home Assistant input_text entities for multi-device sync.
+Input-helper sync mode (`use_input_helpers: true`):
+
+✅ **Pros:**
+- Schedules accessible to AppDaemon/automations
+- Shared across devices/browsers
+
+❌ **Cons:**
+- Requires creating helper entities in HA
+- Helper values can be truncated if `max` is too low (use `1024+`)
 
 ## Roadmap
 
 - [ ] HACS integration
-- [ ] Store schedules in Home Assistant entities
 - [ ] Multi-device sync
 - [ ] Temperature profiles (Home/Away/Sleep)
 - [ ] Holiday mode
