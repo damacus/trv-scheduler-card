@@ -40,7 +40,8 @@ script:
           level: info
 
 # Input helpers to store schedule data
-# These will be created automatically by the card or you can create them manually
+# Create these manually in Home Assistant config/UI.
+# The card syncs values to them when `use_input_helpers: true` is enabled.
 
 # Example for a zone:
 input_text:
@@ -81,4 +82,4 @@ input_text:
 
 # Note: The card stores schedules in localStorage by default.
 # For persistence across devices and integration with automations,
-# you can enable the "Use Input Helpers" option in the card config.
+# enable the "Use Input Helpers" option in the card config.

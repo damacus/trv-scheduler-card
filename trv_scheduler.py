@@ -32,7 +32,7 @@ trv_scheduler:
 
 import appdaemon.plugins.hass.hassapi as hass
 import json
-from datetime import datetime, time as dt_time
+from datetime import datetime
 
 
 class TRVHeatingScheduler(hass.Hass):
@@ -170,7 +170,7 @@ class TRVHeatingScheduler(hass.Hass):
                     current_temp = self.get_state(entity_id, attribute='temperature')
                     
                     # Only update if temperature is different
-                    if current_temp != target_temp:
+                    if not self.temperatures_match(current_temp, target_temp):
                         self.log(
                             f"Setting {entity_id} to {target_temp}°C "
                             f"(block: {active_block['start']}-{active_block['end']})"
@@ -192,8 +192,10 @@ class TRVHeatingScheduler(hass.Hass):
             
             # Handle blocks that span midnight
             if end_minutes < start_minutes:
-                end_minutes += 1440  # Add 24 hours
-            
+                if current_minutes >= start_minutes or current_minutes < end_minutes:
+                    return block
+                continue
+
             if start_minutes <= current_minutes < end_minutes:
                 return block
         
@@ -203,6 +205,13 @@ class TRVHeatingScheduler(hass.Hass):
         """Convert time string (HH:MM) to minutes since midnight."""
         hours, minutes = map(int, time_str.split(':'))
         return hours * 60 + minutes
+
+    def temperatures_match(self, current_temp, target_temp):
+        """Compare temperatures with tolerance, handling HA string states."""
+        try:
+            return abs(float(current_temp) - float(target_temp)) < 0.1
+        except (TypeError, ValueError):
+            return False
 
     def terminate(self):
         """Clean up on termination."""
