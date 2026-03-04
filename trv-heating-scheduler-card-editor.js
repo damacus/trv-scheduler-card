@@ -54,8 +54,8 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
           <input 
             type="text" 
             class="config-input"
-            .value="${config.title || 'Heating Schedule'}"
-            @change="${(e) => this.updateConfig('title', e.target.value)}"
+            value="${config.title || 'Heating Schedule'}"
+            data-field="title"
           />
         </div>
 
@@ -67,11 +67,11 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
               <input 
                 type="number" 
                 class="config-input small"
-                .value="${config.default_temperature || 16}"
+                value="${config.default_temperature || 16}"
                 min="5"
                 max="30"
                 step="0.5"
-                @change="${(e) => this.updateConfig('default_temperature', parseFloat(e.target.value))}"
+                data-field="default_temperature"
               />
               <span>°C</span>
             </div>
@@ -80,11 +80,11 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
               <input 
                 type="number" 
                 class="config-input small"
-                .value="${config.comfort_temperature || 19}"
+                value="${config.comfort_temperature || 19}"
                 min="5"
                 max="30"
                 step="0.5"
-                @change="${(e) => this.updateConfig('comfort_temperature', parseFloat(e.target.value))}"
+                data-field="comfort_temperature"
               />
               <span>°C</span>
             </div>
@@ -96,7 +96,7 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
           <div class="zones-list">
             ${zones.map((zone, index) => this.renderZoneEditor(zone, index)).join('')}
           </div>
-          <button class="add-zone-btn" @click="${() => this.addZone()}">
+          <button class="add-zone-btn">
             + Add Zone
           </button>
         </div>
@@ -108,11 +108,11 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
             <input 
               type="number" 
               class="config-input small"
-              .value="${config.min_temperature || 5}"
+              value="${config.min_temperature || 5}"
               min="0"
               max="20"
               step="1"
-              @change="${(e) => this.updateConfig('min_temperature', parseFloat(e.target.value))}"
+              data-field="min_temperature"
             />
             <span>°C</span>
           </div>
@@ -121,13 +121,23 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
             <input 
               type="number" 
               class="config-input small"
-              .value="${config.max_temperature || 30}"
+              value="${config.max_temperature || 30}"
               min="20"
               max="35"
               step="1"
-              @change="${(e) => this.updateConfig('max_temperature', parseFloat(e.target.value))}"
+              data-field="max_temperature"
             />
             <span>°C</span>
+          </div>
+          <div class="input-helper-toggle">
+            <label>
+              <input 
+                type="checkbox"
+                data-field="use_input_helpers"
+                ${config.use_input_helpers ? 'checked' : ''}
+              />
+              Sync schedules to Home Assistant input_text helpers
+            </label>
           </div>
         </div>
       </div>
@@ -151,6 +161,17 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
             data-field="name"
           />
           <button class="delete-zone-btn" data-index="${index}">×</button>
+        </div>
+        <div class="zone-id">
+          <label>Zone ID (used in helper entity names)</label>
+          <input
+            type="text"
+            class="config-input"
+            value="${zone.id || ''}"
+            data-index="${index}"
+            data-field="id"
+            placeholder="living_room"
+          />
         </div>
         <div class="zone-entities">
           <label>Climate Entities</label>
@@ -176,9 +197,17 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
 
   updateZone(index, field, value) {
     const zones = [...(this._config.zones || [])];
-    zones[index] = { ...zones[index], [field]: value };
+    const normalizedValue = field === 'id' ? this.sanitizeZoneId(value) : value;
+    zones[index] = { ...zones[index], [field]: normalizedValue };
     this.updateConfig('zones', zones);
     this.render();
+  }
+
+  sanitizeZoneId(value) {
+    return (value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 
   addZone() {
@@ -200,11 +229,12 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
   }
 
   attachEventListeners() {
-    // Zone name inputs
-    this.shadowRoot.querySelectorAll('.zone-editor input[data-field="name"]').forEach(input => {
+    // Zone property inputs
+    this.shadowRoot.querySelectorAll('.zone-editor input[data-index][data-field]').forEach(input => {
       input.addEventListener('change', (e) => {
         const index = parseInt(e.target.dataset.index);
-        this.updateZone(index, 'name', e.target.value);
+        const field = e.target.dataset.field;
+        this.updateZone(index, field, e.target.value);
       });
     });
 
@@ -231,17 +261,21 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
       addBtn.addEventListener('click', () => this.addZone());
     }
 
-    // Config inputs
-    this.shadowRoot.querySelectorAll('.config-input').forEach(input => {
-      if (!input.dataset.index) { // Skip zone inputs
-        input.addEventListener('change', (e) => {
-          const field = e.target.previousElementSibling?.textContent?.toLowerCase().replace(/\s+/g, '_');
-          if (field) {
-            const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
-            this.updateConfig(field, value);
-          }
-        });
-      }
+    // Top-level config inputs
+    this.shadowRoot.querySelectorAll('.config-input[data-field]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const field = e.target.dataset.field;
+        const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+        this.updateConfig(field, value);
+      });
+    });
+
+    // Config checkboxes
+    this.shadowRoot.querySelectorAll('input[type="checkbox"][data-field]').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const field = e.target.dataset.field;
+        this.updateConfig(field, e.target.checked);
+      });
     });
   }
 
@@ -329,6 +363,17 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
         color: var(--secondary-text-color);
       }
 
+      .zone-id {
+        margin-bottom: 12px;
+      }
+
+      .zone-id label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+        color: var(--secondary-text-color);
+      }
+
       .entity-select {
         width: 100%;
         padding: 8px;
@@ -355,6 +400,18 @@ class TRVHeatingSchedulerCardEditor extends HTMLElement {
         border-color: var(--primary-color);
         background: var(--primary-color);
         color: white;
+      }
+
+      .input-helper-toggle {
+        margin-top: 8px;
+      }
+
+      .input-helper-toggle label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: var(--primary-text-color);
       }
     `;
   }

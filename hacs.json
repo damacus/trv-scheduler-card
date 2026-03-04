@@ -6,5 +6,5 @@
   "homeassistant": "2024.1.0",
   "persistent_directory": false,
   "filename": "trv-heating-scheduler-card.js",
-  "content_in_root": false
+  "content_in_root": true
 }

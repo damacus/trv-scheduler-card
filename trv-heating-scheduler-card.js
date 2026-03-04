@@ -1,3 +1,5 @@
+import './trv-heating-scheduler-card-editor.js';
+
 /**
  * TRV Heating Scheduler Card
  * A beautiful, Tado-inspired heating schedule interface for Home Assistant
@@ -16,11 +18,15 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._schedules = {};
+    this._days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     this._selectedDay = this.getCurrentDay();
     this._selectedZone = null;
     this._clipboard = null;
     this._dragState = null;
+    this._helperSyncInitialized = false;
+    this._missingHelpers = [];
     this._visualEditorMode = true; // Enable visual editor by default
+    this._initialized = false;
   }
 
   setConfig(config) {
@@ -36,16 +42,52 @@ class TRVHeatingSchedulerCard extends HTMLElement {
       min_temperature: config.min_temperature || 5,
       max_temperature: config.max_temperature || 30,
       time_step: config.time_step || 30, // minutes
+      use_input_helpers: config.use_input_helpers || false,
       ...config
     };
 
     this._selectedZone = this._config.zones[0]?.id;
+    this._helperSyncInitialized = false;
     this.loadSchedules();
   }
 
   set hass(hass) {
+    const oldHass = this._hass;
     this._hass = hass;
-    this.render();
+
+    if (this._config.use_input_helpers && !this._helperSyncInitialized) {
+      this.loadSchedulesFromInputHelpers();
+      this._helperSyncInitialized = true;
+    }
+
+    if (!this._initialized) {
+      this.render();
+      this._initialized = true;
+      return;
+    }
+
+    // Check if any relevant states have changed before updating
+    if (this.shouldUpdate(oldHass, hass)) {
+      this.updateUI();
+    }
+  }
+
+  shouldUpdate(oldHass, newHass) {
+    if (!oldHass) return true;
+
+    // Update if helpers changed
+    if (this._config.use_input_helpers) {
+      for (const zone of this._config.zones) {
+        for (const day of this._days) {
+          const entityId = this.getInputHelperEntityId(zone.id, day);
+          if (oldHass.states[entityId]?.state !== newHass.states[entityId]?.state) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   getCurrentDay() {
@@ -64,24 +106,22 @@ class TRVHeatingSchedulerCard extends HTMLElement {
       }
     }
 
-    // Initialize default schedules if not exists
-    this._config.zones.forEach(zone => {
-      if (!this._schedules[zone.id]) {
-        this._schedules[zone.id] = this.createDefaultSchedule();
-      }
-    });
+    this.ensureScheduleShape();
   }
 
   saveSchedules() {
     localStorage.setItem('trv_schedules', JSON.stringify(this._schedules));
-    this.applySchedules();
+    if (this._config.use_input_helpers) {
+      this.saveSchedulesToInputHelpers();
+    }
+    // We let AppDaemon handle the actual climate calls to avoid race conditions
+    // this.applySchedules();
   }
 
   createDefaultSchedule() {
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const schedule = {};
     
-    days.forEach(day => {
+    this._days.forEach(day => {
       schedule[day] = [
         { start: '00:00', end: '06:00', temperature: this._config.default_temperature },
         { start: '06:00', end: '18:00', temperature: this._config.comfort_temperature },
@@ -100,9 +140,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
 
     this._config.zones.forEach(zone => {
       const daySchedule = this._schedules[zone.id]?.[currentDay] || [];
-      const activeBlock = daySchedule.find(block => 
-        currentTime >= block.start && currentTime < block.end
-      );
+      const activeBlock = this.findActiveBlock(currentTime, daySchedule);
 
       if (activeBlock && zone.entities) {
         zone.entities.forEach(entityId => {
@@ -115,11 +153,146 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     });
   }
 
+  ensureScheduleShape() {
+    this._config.zones.forEach(zone => {
+      if (!this._schedules[zone.id]) {
+        this._schedules[zone.id] = this.createDefaultSchedule();
+      }
+      this._days.forEach(day => {
+        if (!Array.isArray(this._schedules[zone.id][day])) {
+          this._schedules[zone.id][day] = this.createDefaultSchedule()[day];
+        }
+      });
+    });
+  }
+
+  getInputHelperEntityId(zoneId, day) {
+    const normalizedZoneId = String(zoneId || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    return `input_text.${normalizedZoneId}_schedule_${day}`;
+  }
+
+  loadSchedulesFromInputHelpers() {
+    if (!this._hass?.states) return;
+
+    const missingHelpers = [];
+    this.ensureScheduleShape();
+
+    this._config.zones.forEach(zone => {
+      this._days.forEach(day => {
+        const entityId = this.getInputHelperEntityId(zone.id, day);
+        const helperState = this._hass.states[entityId];
+
+        if (!helperState) {
+          missingHelpers.push(entityId);
+          return;
+        }
+
+        const raw = helperState.state;
+        if (!raw || raw === 'unknown' || raw === 'unavailable') return;
+
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            this._schedules[zone.id][day] = parsed;
+          }
+        } catch (e) {
+          console.warn(`[TRV Scheduler] Invalid JSON in ${entityId}`, e);
+        }
+      });
+    });
+
+    this._missingHelpers = missingHelpers;
+    localStorage.setItem('trv_schedules', JSON.stringify(this._schedules));
+  }
+
+  saveSchedulesToInputHelpers() {
+    if (!this._hass?.states) return;
+
+    const missingHelpers = [];
+
+    this._config.zones.forEach(zone => {
+      this._days.forEach(day => {
+        const entityId = this.getInputHelperEntityId(zone.id, day);
+        if (!this._hass.states[entityId]) {
+          missingHelpers.push(entityId);
+          return;
+        }
+
+        const payload = this._schedules[zone.id]?.[day] || [];
+        this._hass.callService('input_text', 'set_value', {
+          entity_id: entityId,
+          value: JSON.stringify(payload)
+        });
+      });
+    });
+
+    this._missingHelpers = missingHelpers;
+  }
+
+  findActiveBlock(currentTime, schedule) {
+    const currentMinutes = this.timeToMinutes(currentTime);
+
+    return schedule.find(block => {
+      const startMinutes = this.timeToMinutes(block.start);
+      const endMinutes = this.timeToMinutes(block.end);
+
+      if (endMinutes === startMinutes) return false;
+      if (endMinutes > startMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+      }
+
+      // Overnight block (e.g. 22:00-02:00)
+      return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+    });
+  }
+
+  updateUI() {
+    if (!this.shadowRoot || !this._hass) return;
+
+    const schedule = this._schedules[this._selectedZone]?.[this._selectedDay] || [];
+
+    // Update Zone Tabs
+    const zoneTabs = this.shadowRoot.querySelectorAll('.zone-tab');
+    zoneTabs.forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.zone === this._selectedZone);
+    });
+
+    // Update Day Buttons
+    const dayButtons = this.shadowRoot.querySelectorAll('.day-btn');
+    dayButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.day === this._selectedDay);
+    });
+
+    // Update Timeline
+    const timeline = this.shadowRoot.querySelector('.timeline');
+    if (timeline) {
+      timeline.innerHTML = this.renderTimeline(schedule);
+    }
+
+    // Update Schedule Blocks
+    const scheduleContainer = this.shadowRoot.querySelector('.schedule-blocks');
+    if (scheduleContainer) {
+      scheduleContainer.innerHTML = schedule.map((block, index) => this.renderTimeBlock(block, index)).join('');
+    }
+
+    // Update Clipboard Status
+    const pasteBtn = this.shadowRoot.querySelector('.paste-btn');
+    if (pasteBtn) {
+      pasteBtn.classList.toggle('disabled', !this._clipboard);
+      pasteBtn.disabled = !this._clipboard;
+    }
+
+    this.attachEventListeners();
+  }
+
   copyDay() {
     const schedule = this._schedules[this._selectedZone]?.[this._selectedDay];
     if (schedule) {
       this._clipboard = JSON.parse(JSON.stringify(schedule));
-      this.render();
+      this.updateUI();
     }
   }
 
@@ -128,7 +301,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
       this._schedules[this._selectedZone][this._selectedDay] = 
         JSON.parse(JSON.stringify(this._clipboard));
       this.saveSchedules();
-      this.render();
+      this.updateUI();
     }
   }
 
@@ -141,13 +314,13 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     });
     this.sortSchedule();
     this.saveSchedules();
-    this.render();
+    this.updateUI();
   }
 
   deleteTimeBlock(index) {
     this._schedules[this._selectedZone][this._selectedDay].splice(index, 1);
     this.saveSchedules();
-    this.render();
+    this.updateUI();
   }
 
   updateTimeBlock(index, field, value) {
@@ -156,7 +329,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
       this.sortSchedule();
     }
     this.saveSchedules();
-    this.render();
+    this.updateUI();
   }
 
   sortSchedule() {
@@ -224,7 +397,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
       this._schedules[this._selectedZone][this._selectedDay][index].start = this.minutesToTime(newStart);
       this._schedules[this._selectedZone][this._selectedDay][index].end = this.minutesToTime(newEnd);
       this.saveSchedules();
-      this.render();
+      this.updateUI();
     }
   }
 
@@ -282,7 +455,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     
     this.sortSchedule();
     this.saveSchedules();
-    this.render();
+    this.updateUI();
   }
 
   timeToMinutes(time) {
@@ -334,6 +507,11 @@ class TRVHeatingSchedulerCard extends HTMLElement {
           </div>
 
           <div class="timeline-container">
+            ${this._config.use_input_helpers && this._missingHelpers.length > 0 ? `
+              <div class="helper-warning">
+                Missing input_text helpers (${this._missingHelpers.length}). Create them to enable HA schedule sync.
+              </div>
+            ` : ''}
             <div class="timeline-help">
               💡 <strong>Visual Editor:</strong> Drag blocks to move • Drag edges to resize • Double-click empty space to add
             </div>
@@ -492,7 +670,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     this.shadowRoot.querySelectorAll('.zone-tab').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this._selectedZone = e.target.dataset.zone;
-        this.render();
+        this.updateUI();
       });
     });
 
@@ -500,7 +678,7 @@ class TRVHeatingSchedulerCard extends HTMLElement {
     this.shadowRoot.querySelectorAll('.day-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this._selectedDay = e.target.dataset.day;
-        this.render();
+        this.updateUI();
       });
     });
 
@@ -675,6 +853,16 @@ class TRVHeatingSchedulerCard extends HTMLElement {
         border-radius: 4px;
         font-size: 13px;
         color: #ccc;
+      }
+
+      .helper-warning {
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background: rgba(255, 68, 68, 0.12);
+        border-left: 3px solid #ff4444;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #ffc9c9;
       }
 
       .timeline-help strong {
@@ -989,7 +1177,8 @@ class TRVHeatingSchedulerCard extends HTMLElement {
         }
       ],
       default_temperature: 16,
-      comfort_temperature: 19
+      comfort_temperature: 19,
+      use_input_helpers: false
     };
   }
 }

@@ -48,7 +48,7 @@ mv trv-heating-scheduler-card-editor.js /config/www/trv-scheduler/
 3. Create folder `trv-scheduler`
 4. Copy both files into the folder
 
-### 1.3 Register the Resource
+### 1.3 Register the Resources
 
 1. Go to **Settings** → **Dashboards**
 2. Click the **⋮** menu (top right)
@@ -58,7 +58,10 @@ mv trv-heating-scheduler-card-editor.js /config/www/trv-scheduler/
    - **URL:** `/local/trv-scheduler/trv-heating-scheduler-card.js`
    - **Resource type:** JavaScript Module
 6. Click **CREATE**
-7. **Restart Home Assistant**: Settings → System → Restart
+7. Add second resource:
+   - **URL:** `/local/trv-scheduler/trv-heating-scheduler-card-editor.js`
+   - **Resource type:** JavaScript Module
+8. **Restart Home Assistant**: Settings → System → Restart
 
 ## Step 2: Add the Card (2 minutes)
 
@@ -138,7 +141,7 @@ Test it first! At any time:
 2. Your TRVs will show the scheduled temperature
 3. Manually verify it's working
 
-### Automatic Method - AppDaemon
+### Automatic Method - AppDaemon + Input Helpers
 
 If you want hands-free automation:
 
@@ -163,13 +166,23 @@ If you want hands-free automation:
      comfort_temperature: 19
    ```
 
-3. **Add the Python App:**
+3. **Enable helper sync in card config:**
+   - Set `use_input_helpers: true` in card YAML or enable it in visual editor.
+   - Keep zone IDs lowercase/underscore (example: `living_room`).
+
+4. **Create helper entities:**
+   - One per zone/day, named as:
+   - `input_text.<zone_id>_schedule_<day>`
+   - Example: `input_text.living_room_schedule_monday`
+   - Use `max: 1024` (or higher)
+
+5. **Add the Python App:**
    - Copy `trv_scheduler.py` to `/config/appdaemon/apps/`
 
-4. **Restart AppDaemon:**
+6. **Restart AppDaemon:**
    - Settings → Add-ons → AppDaemon → Restart
 
-5. **Done!** Your schedules now apply automatically.
+7. **Done!** Your schedules now apply automatically.
 
 ## Example Configurations
 
@@ -235,7 +248,7 @@ comfort_temperature: 21
 ## Troubleshooting
 
 ### "Card not found" error
-- Did you add the resource in Settings → Dashboards → Resources?
+- Did you add both resources in Settings → Dashboards → Resources?
 - Did you restart Home Assistant after adding the resource?
 - Check the URL is exactly: `/local/trv-scheduler/trv-heating-scheduler-card.js`
 
@@ -258,7 +271,7 @@ comfort_temperature: 21
 - Schedules are stored in browser localStorage
 - Clearing browser data will delete them
 - For now, avoid private/incognito mode
-- Future version will support cloud storage
+- For cross-device persistence, enable `use_input_helpers: true`
 
 ## Next Steps
 
