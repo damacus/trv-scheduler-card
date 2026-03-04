@@ -38,30 +38,15 @@ A beautiful, Tado-inspired heating scheduler for controlling smart TRVs (Thermos
 1. Open HACS in Home Assistant.
 2. Click on **Frontend**.
 3. Click the three dots in the top right and select **Custom repositories**.
-4. Add this repository URL and select **Lovelace** as the category.
+4. Add this repository URL (`https://github.com/damacus/trv-scheduler-card`) and select **Lovelace** as the category.
 5. Search for "TRV Heating Scheduler Card" and install it.
 
 ### 2. Backend Logic (AppDaemon)
-**IMPORTANT:** The HACS installation only handles the frontend UI. To actually enforce the schedules, you must manually install the AppDaemon script:
+**IMPORTANT:** To actually enforce the schedules, you must install the AppDaemon component from its separate repository:
 
-1. Ensure you have the **AppDaemon** add-on installed and running in Home Assistant.
-2. Copy `trv_scheduler.py` from this repository into your Home Assistant `/config/appdaemon/apps/` directory.
-3. Add the following to your `apps.yaml` configuration:
-
-```yaml
-trv_scheduler:
-  module: trv_scheduler
-  class: TRVHeatingScheduler
-  zones:
-    - name: "Living Room"
-      id: "living_room"
-      entities:
-        - climate.living_room_trv
-  default_temperature: 16
-  comfort_temperature: 19
-```
-
-4. Restart AppDaemon to apply the changes.
+1. [TRV Heating Scheduler AppDaemon Repository](https://github.com/damacus/trv-scheduler-appdaemon)
+2. Follow the installation instructions there to install via HACS (Automations category).
+3. Ensure **Sync schedules to Home Assistant input_text helpers** is enabled in the card configuration.
 
 ## Configuration
 
